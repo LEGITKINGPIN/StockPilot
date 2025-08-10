@@ -24,7 +24,6 @@
                                 <th>Timestamp</th>
                                 <th>Action</th>
                                 <th>Details</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -45,21 +44,9 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="text-truncate" style="max-width: 400px;" title="{{ entry['Details'] }}">
+                                    <div class="text-truncate" style="max-width: 500px;" title="{{ entry['Details'] }}">
                                         {{ entry['Details'] }}
                                     </div>
-                                </td>
-                                <td>
-                                    {% if entry['Action'] == 'Remove' and entry.get('RestoreData') %}
-                                    <form method="POST" action="{{ url_for('undo', timestamp=entry['Timestamp']) }}" style="display: inline;">
-                                        <button type="submit" class="btn btn-sm btn-outline-info" 
-                                                onclick="return confirm('Are you sure you want to restore this item?')">
-                                            <i data-feather="undo"></i> Undo
-                                        </button>
-                                    </form>
-                                    {% else %}
-                                    <span class="text-muted">-</span>
-                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
