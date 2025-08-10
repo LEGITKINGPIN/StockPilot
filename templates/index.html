@@ -45,17 +45,17 @@
                             <tr class="inventory-item">
                                 <td><strong class="text-primary">{{ item['Item'] }}</strong></td>
                                 <td>{{ item['Category'] }}</td>
-                                <td>{{ item['Subcategory'] if item['Subcategory'] and item['Subcategory'] != 'nan' else '-' }}</td>
-                                <td>{{ item['Brand/Type'] if item['Brand/Type'] and item['Brand/Type'] != 'nan' else '-' }}</td>
-                                <td>{{ item['Length/Capacity'] if item['Length/Capacity'] and item['Length/Capacity'] != 'nan' else '-' }}</td>
+                                <td>{{ item['Subcategory'] if item['Subcategory'] and item['Subcategory'].strip() else '-' }}</td>
+                                <td>{{ item['Brand/Type'] if item['Brand/Type'] and item['Brand/Type'].strip() else '-' }}</td>
+                                <td>{{ item['Length/Capacity'] if item['Length/Capacity'] and item['Length/Capacity'].strip() else '-' }}</td>
                                 <td>
                                     <span class="badge {{ 'bg-warning' if item['Quantity'] <= 5 else 'bg-success' }}">
                                         {{ item['Quantity'] }}
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="text-truncate" style="max-width: 150px;" title="{{ item['Notes'] if item['Notes'] and item['Notes'] != 'nan' else '' }}">
-                                        {{ item['Notes'] if item['Notes'] and item['Notes'] != 'nan' else '-' }}
+                                    <div class="text-truncate" style="max-width: 150px;" title="{{ item['Notes'] if item['Notes'] and item['Notes'].strip() else '' }}">
+                                        {{ item['Notes'] if item['Notes'] and item['Notes'].strip() else '-' }}
                                     </div>
                                 </td>
                                 <td>
@@ -136,21 +136,21 @@ function updateInventoryTable(items) {
     let html = '';
     items.forEach((item, index) => {
         const quantityBadge = item.Quantity <= 5 ? 'bg-warning' : 'bg-success';
-        const subcategory = item.Subcategory && item.Subcategory !== 'nan' ? item.Subcategory : '-';
-        const brandType = item['Brand/Type'] && item['Brand/Type'] !== 'nan' ? item['Brand/Type'] : '-';
-        const lengthCapacity = item['Length/Capacity'] && item['Length/Capacity'] !== 'nan' ? item['Length/Capacity'] : '-';
-        const notes = item.Notes && item.Notes !== 'nan' ? item.Notes : '-';
+        const subcategory = item.Subcategory && item.Subcategory.trim() !== '' ? item.Subcategory : '-';
+        const brandType = item['Brand/Type'] && item['Brand/Type'].trim() !== '' ? item['Brand/Type'] : '-';
+        const lengthCapacity = item['Length/Capacity'] && item['Length/Capacity'].trim() !== '' ? item['Length/Capacity'] : '-';
+        const notes = item.Notes && item.Notes.trim() !== '' ? item.Notes : '-';
         
         html += `
             <tr class="inventory-item">
-                <td><strong class="text-primary">${item.Item}</strong></td>
-                <td>${item.Category}</td>
+                <td><strong class="text-primary">${item.Item || ''}</strong></td>
+                <td>${item.Category || ''}</td>
                 <td>${subcategory}</td>
                 <td>${brandType}</td>
                 <td>${lengthCapacity}</td>
                 <td>
                     <span class="badge ${quantityBadge}">
-                        ${item.Quantity}
+                        ${item.Quantity || 0}
                     </span>
                 </td>
                 <td>

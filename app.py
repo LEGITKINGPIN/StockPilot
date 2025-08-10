@@ -74,7 +74,11 @@ def index():
     if search_query:
         filtered = df.apply(lambda row: search_query.lower() in str(row).lower(), axis=1)
         df = df[filtered]
+    
+    # Handle NaN values for template rendering
+    df = df.fillna("")
     items = df.to_dict(orient="records")
+    
     background_url, bg_type = get_background_url()
     theme_color = request.cookies.get('theme_color', '#f8f9fa')
     return render_template("index.html", items=items, search=search_query, background_url=background_url, bg_type=bg_type, theme_color=theme_color)
@@ -86,7 +90,16 @@ def live_search():
     if query:
         filtered = df.apply(lambda row: query.lower() in str(row).lower(), axis=1)
         df = df[filtered]
-    items = df.to_dict(orient="records")
+    
+    # Convert to dict and handle NaN values
+    items = df.fillna("").to_dict(orient="records")
+    
+    # Clean up the data to ensure JSON serialization works
+    for item in items:
+        for key, value in item.items():
+            if pd.isna(value) or str(value) == 'nan':
+                item[key] = ""
+    
     return jsonify({"items": items})
 
 @app.route("/add", methods=["GET", "POST"])
