@@ -25,7 +25,6 @@
                                 <th>Action</th>
                                 <th>Details</th>
                                 <th>Actions</th>
-                                <th>View</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -46,27 +45,21 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="text-truncate" style="max-width: 350px;" title="{{ entry['Details'] }}">
+                                    <div class="text-truncate" style="max-width: 400px;" title="{{ entry['Details'] }}">
                                         {{ entry['Details'] }}
                                     </div>
                                 </td>
                                 <td>
                                     {% if entry['Action'] == 'Remove' and entry.get('RestoreData') %}
                                     <form method="POST" action="{{ url_for('undo', timestamp=entry['Timestamp']) }}" style="display: inline;">
-                                        <button type="submit" class="btn btn-sm btn-outline-success" 
+                                        <button type="submit" class="btn btn-sm btn-outline-info" 
                                                 onclick="return confirm('Are you sure you want to restore this item?')">
-                                            <i data-feather="undo" size="14"></i> Undo
+                                            <i data-feather="undo"></i> Undo
                                         </button>
                                     </form>
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
-                                </td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-outline-info" 
-                                            onclick="showDetails('{{ loop.index0 }}')">
-                                        <i data-feather="eye" size="14"></i> Details
-                                    </button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -106,101 +99,11 @@
                     <li><span class="badge bg-info me-2">Undo Remove</span> Previously deleted items restored</li>
                 </ul>
                 <p class="text-muted mb-0">
-                    <small>Click the Details button to view complete information about each action.</small>
+                    <small>Only removal actions can be undone. Updates and additions are permanent.</small>
                 </p>
             </div>
         </div>
     </div>
 </div>
 {% endif %}
-
-<!-- Details Modal -->
-<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="detailsModalLabel">Action Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="detailsModalBody">
-                <!-- Content will be populated by JavaScript -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block scripts %}
-<script>
-// History data for JavaScript access
-const historyData = {{ history_data|tojson }};
-
-function showDetails(index) {
-    const reversedIndex = historyData.length - 1 - index; // Account for reversed display
-    const entry = historyData[reversedIndex];
-    
-    if (!entry) {
-        console.error('Entry not found for index:', index);
-        return;
-    }
-    
-    const modalBody = document.getElementById('detailsModalBody');
-    
-    // Format the timestamp more nicely
-    const timestamp = new Date(entry.Timestamp).toLocaleString();
-    
-    let content = `
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <h6><i data-feather="clock"></i> Date & Time</h6>
-                <p class="text-primary">${timestamp}</p>
-            </div>
-            <div class="col-md-6">
-                <h6><i data-feather="activity"></i> Action Type</h6>
-                <p>
-                    <span class="badge 
-                        ${entry.Action === 'Add' ? 'bg-success' : 
-                          entry.Action === 'Remove' ? 'bg-danger' : 
-                          entry.Action === 'Update' ? 'bg-warning' : 
-                          entry.Action === 'Undo Remove' ? 'bg-info' : 'bg-secondary'}">
-                        ${entry.Action}
-                    </span>
-                </p>
-            </div>
-        </div>
-        
-        <div class="mb-3">
-            <h6><i data-feather="file-text"></i> Full Details</h6>
-            <div class="bg-dark p-3 rounded" style="white-space: pre-wrap; word-break: break-word;">
-                ${entry.Details}
-            </div>
-        </div>
-    `;
-    
-    // Add restore data if available
-    if (entry.RestoreData && entry.RestoreData.trim()) {
-        content += `
-            <div class="mb-3">
-                <h6><i data-feather="database"></i> Restore Data</h6>
-                <div class="bg-dark p-3 rounded" style="white-space: pre-wrap; word-break: break-word;">
-                    ${entry.RestoreData}
-                </div>
-            </div>
-        `;
-    }
-    
-    modalBody.innerHTML = content;
-    
-    // Initialize feather icons in modal
-    feather.replace();
-    
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
-    modal.show();
-}
-</script>
 {% endblock %}
