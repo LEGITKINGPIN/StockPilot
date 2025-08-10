@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2><i data-feather="bar-chart-2"></i> Inventory Analytics</h2>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i data-feather="package" size="32" class="text-primary mb-3"></i>
+                <h3 class="text-primary">{{ total_items }}</h3>
+                <p class="text-muted mb-0">Total Items</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i data-feather="layers" size="32" class="text-success mb-3"></i>
+                <h3 class="text-success">{{ total_quantity }}</h3>
+                <p class="text-muted mb-0">Total Quantity</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <i data-feather="alert-triangle" size="32" class="text-warning mb-3"></i>
+                <h3 class="text-warning">{{ low_stock|length }}</h3>
+                <p class="text-muted mb-0">Low Stock Items</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Items by Category</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="pieChart" width="400" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Quantity by Category</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="barChart" width="400" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Low Stock Items -->
+{% if low_stock %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0 text-warning">
+                    <i data-feather="alert-triangle"></i> Low Stock Alert (≤ 5 units)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in low_stock %}
+                            <tr>
+                                <td>{{ item['Item'] }}</td>
+                                <td>{{ item['Category'] }}</td>
+                                <td>
+                                    <span class="badge bg-warning">{{ item['Quantity'] }}</span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('update', row=loop.index0) }}" class="btn btn-sm btn-outline-primary">
+                                        <i data-feather="edit"></i> Update
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart.js configuration for dark theme
+Chart.defaults.color = '#ffffff';
+Chart.defaults.borderColor = '#374151';
+
+// Pie Chart
+const pieCtx = document.getElementById('pieChart').getContext('2d');
+const pieData = {{ pie_data|tojson }};
+
+new Chart(pieCtx, {
+    type: 'pie',
+    data: {
+        labels: Object.keys(pieData),
+        datasets: [{
+            data: Object.values(pieData),
+            backgroundColor: [
+                '#ff6384',
+                '#36a2eb',
+                '#ffce56',
+                '#4bc0c0',
+                '#9966ff',
+                '#ff9f40',
+                '#ff6384',
+                '#c9cbcf'
+            ],
+            borderWidth: 2,
+            borderColor: '#374151'
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 20,
+                    usePointStyle: true
+                }
+            }
+        }
+    }
+});
+
+// Bar Chart
+const barCtx = document.getElementById('barChart').getContext('2d');
+const barData = {{ bar_data|tojson }};
+
+new Chart(barCtx, {
+    type: 'bar',
+    data: {
+        labels: Object.keys(barData),
+        datasets: [{
+            label: 'Quantity',
+            data: Object.values(barData),
+            backgroundColor: '#36a2eb',
+            borderColor: '#36a2eb',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: '#374151'
+                }
+            },
+            x: {
+                grid: {
+                    color: '#374151'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

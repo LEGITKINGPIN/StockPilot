@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h4 class="mb-0">
+                            <i data-feather="package"></i> Inventory Items
+                        </h4>
+                    </div>
+                    <div class="col-md-6">
+                        <form method="POST" class="d-flex">
+                            <input type="text" name="search" class="form-control" placeholder="Search inventory..." 
+                                   value="{{ search }}" id="searchInput">
+                            <button type="submit" class="btn btn-outline-secondary ms-2">
+                                <i data-feather="search"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if items %}
+                <div class="row" id="inventoryGrid">
+                    {% for item in items %}
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card inventory-item h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <h5 class="card-title text-primary">{{ item['Item'] }}</h5>
+                                    <span class="badge {{ 'bg-warning' if item['Quantity'] <= 5 else 'bg-success' }}">
+                                        {{ item['Quantity'] }} units
+                                    </span>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <small class="text-muted">Category:</small>
+                                    <div>{{ item['Category'] }}</div>
+                                </div>
+                                
+                                {% if item['Subcategory'] and item['Subcategory'] != 'nan' %}
+                                <div class="mb-2">
+                                    <small class="text-muted">Subcategory:</small>
+                                    <div>{{ item['Subcategory'] }}</div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if item['Brand/Type'] and item['Brand/Type'] != 'nan' %}
+                                <div class="mb-2">
+                                    <small class="text-muted">Brand/Type:</small>
+                                    <div>{{ item['Brand/Type'] }}</div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if item['Length/Capacity'] and item['Length/Capacity'] != 'nan' %}
+                                <div class="mb-2">
+                                    <small class="text-muted">Length/Capacity:</small>
+                                    <div>{{ item['Length/Capacity'] }}</div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if item['Notes'] and item['Notes'] != 'nan' %}
+                                <div class="mb-3">
+                                    <small class="text-muted">Notes:</small>
+                                    <div class="text-muted">{{ item['Notes'] }}</div>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="d-flex gap-2">
+                                    <a href="{{ url_for('update', row=loop.index0) }}" class="btn btn-sm btn-outline-primary">
+                                        <i data-feather="edit"></i> Edit
+                                    </a>
+                                    <form method="POST" action="{{ url_for('remove', row=loop.index0) }}" 
+                                          style="display: inline;" 
+                                          onsubmit="return confirm('Are you sure you want to remove this item?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i data-feather="trash"></i> Remove
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i data-feather="package" size="64" class="text-muted mb-3"></i>
+                    <h5 class="text-muted">No inventory items found</h5>
+                    {% if search %}
+                    <p class="text-muted">No items match your search for "{{ search }}"</p>
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Clear Search</a>
+                    {% else %}
+                    <p class="text-muted">Start by adding your first item to the inventory</p>
+                    <a href="{{ url_for('add') }}" class="btn btn-primary">
+                        <i data-feather="plus"></i> Add First Item
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Real-time search functionality
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(function() {
+        const query = e.target.value;
+        if (query.length >= 2 || query.length === 0) {
+            fetch(`/search?search=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateInventoryGrid(data.items);
+                })
+                .catch(error => console.error('Search error:', error));
+        }
+    }, 300);
+});
+
+function updateInventoryGrid(items) {
+    const grid = document.getElementById('inventoryGrid');
+    if (items.length === 0) {
+        grid.innerHTML = `
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i data-feather="search" size="64" class="text-muted mb-3"></i>
+                    <h5 class="text-muted">No items found</h5>
+                    <p class="text-muted">Try adjusting your search criteria</p>
+                </div>
+            </div>
+        `;
+        feather.replace();
+        return;
+    }
+    
+    let html = '';
+    items.forEach((item, index) => {
+        const quantityBadge = item.Quantity <= 5 ? 'bg-warning' : 'bg-success';
+        html += `
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card inventory-item h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title text-primary">${item.Item}</h5>
+                            <span class="badge ${quantityBadge}">
+                                ${item.Quantity} units
+                            </span>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <small class="text-muted">Category:</small>
+                            <div>${item.Category}</div>
+                        </div>
+                        
+                        ${item.Subcategory && item.Subcategory !== 'nan' ? `
+                        <div class="mb-2">
+                            <small class="text-muted">Subcategory:</small>
+                            <div>${item.Subcategory}</div>
+                        </div>
+                        ` : ''}
+                        
+                        ${item['Brand/Type'] && item['Brand/Type'] !== 'nan' ? `
+                        <div class="mb-2">
+                            <small class="text-muted">Brand/Type:</small>
+                            <div>${item['Brand/Type']}</div>
+                        </div>
+                        ` : ''}
+                        
+                        ${item['Length/Capacity'] && item['Length/Capacity'] !== 'nan' ? `
+                        <div class="mb-2">
+                            <small class="text-muted">Length/Capacity:</small>
+                            <div>${item['Length/Capacity']}</div>
+                        </div>
+                        ` : ''}
+                        
+                        ${item.Notes && item.Notes !== 'nan' ? `
+                        <div class="mb-3">
+                            <small class="text-muted">Notes:</small>
+                            <div class="text-muted">${item.Notes}</div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="d-flex gap-2">
+                            <a href="/update/${index}" class="btn btn-sm btn-outline-primary">
+                                <i data-feather="edit"></i> Edit
+                            </a>
+                            <form method="POST" action="/remove/${index}" 
+                                  style="display: inline;" 
+                                  onsubmit="return confirm('Are you sure you want to remove this item?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i data-feather="trash"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    grid.innerHTML = html;
+    feather.replace();
+}
+</script>
+{% endblock %}

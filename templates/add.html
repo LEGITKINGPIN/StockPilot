@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Add Item - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i data-feather="plus"></i> Add New Inventory Item
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category" class="form-label">Category *</label>
+                                <input type="text" class="form-control" id="category" name="category" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="subcategory" class="form-label">Subcategory</label>
+                                <input type="text" class="form-control" id="subcategory" name="subcategory">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="item" class="form-label">Item Name *</label>
+                                <input type="text" class="form-control" id="item" name="item" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="brand_type" class="form-label">Brand/Type</label>
+                                <input type="text" class="form-control" id="brand_type" name="brand_type">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="length_capacity" class="form-label">Length/Capacity</label>
+                                <input type="text" class="form-control" id="length_capacity" name="length_capacity">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity *</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" min="0" value="1" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any additional information about this item..."></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i data-feather="plus"></i> Add Item
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i data-feather="arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

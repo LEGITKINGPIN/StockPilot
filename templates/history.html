@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}History - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2><i data-feather="clock"></i> Action History</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Actions</h5>
+            </div>
+            <div class="card-body">
+                {% if history_data %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in history_data|reverse %}
+                            <tr>
+                                <td>
+                                    <small class="text-muted">{{ entry['Timestamp'] }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if entry['Action'] == 'Add' %}bg-success
+                                        {% elif entry['Action'] == 'Remove' %}bg-danger
+                                        {% elif entry['Action'] == 'Update' %}bg-warning
+                                        {% elif entry['Action'] == 'Undo Remove' %}bg-info
+                                        {% else %}bg-secondary
+                                        {% endif %}">
+                                        {{ entry['Action'] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 400px;" title="{{ entry['Details'] }}">
+                                        {{ entry['Details'] }}
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if entry['Action'] == 'Remove' and entry.get('RestoreData') %}
+                                    <form method="POST" action="{{ url_for('undo', timestamp=entry['Timestamp']) }}" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-info" 
+                                                onclick="return confirm('Are you sure you want to restore this item?')">
+                                            <i data-feather="undo"></i> Undo
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i data-feather="clock" size="64" class="text-muted mb-3"></i>
+                    <h5 class="text-muted">No history yet</h5>
+                    <p class="text-muted">Actions performed on inventory items will appear here</p>
+                    <a href="{{ url_for('index') }}" class="btn btn-primary">
+                        <i data-feather="package"></i> Go to Inventory
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if history_data %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0">
+                    <i data-feather="info"></i> About History
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Actions tracked:</strong></p>
+                <ul class="mb-3">
+                    <li><span class="badge bg-success me-2">Add</span> New items added to inventory</li>
+                    <li><span class="badge bg-warning me-2">Update</span> Changes to existing items</li>
+                    <li><span class="badge bg-danger me-2">Remove</span> Items deleted from inventory (can be undone)</li>
+                    <li><span class="badge bg-info me-2">Undo Remove</span> Previously deleted items restored</li>
+                </ul>
+                <p class="text-muted mb-0">
+                    <small>Only removal actions can be undone. Updates and additions are permanent.</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

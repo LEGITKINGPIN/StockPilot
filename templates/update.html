@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Update Item - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i data-feather="edit"></i> Update Inventory Item
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>{{ item['Item'] }}</strong> from {{ item['Category'] }}
+                    {% if item['Subcategory'] and item['Subcategory'] != 'nan' %}
+                        / {{ item['Subcategory'] }}
+                    {% endif %}
+                </div>
+
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Quantity *</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" 
+                                       min="0" value="{{ item['Quantity'] }}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Current Status</label>
+                                <div class="form-control-plaintext">
+                                    <span class="badge {{ 'bg-warning' if item['Quantity'] <= 5 else 'bg-success' }}">
+                                        {{ 'Low Stock' if item['Quantity'] <= 5 else 'In Stock' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Any additional information...">{{ item['Notes'] if item['Notes'] and item['Notes'] != 'nan' else '' }}</textarea>
+                    </div>
+
+                    <div class="card bg-dark border-secondary mb-3">
+                        <div class="card-header">
+                            <small class="text-muted">Item Details (Read Only)</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted">Category:</small>
+                                    <div>{{ item['Category'] }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Subcategory:</small>
+                                    <div>{{ item['Subcategory'] if item['Subcategory'] and item['Subcategory'] != 'nan' else 'N/A' }}</div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <small class="text-muted">Brand/Type:</small>
+                                    <div>{{ item['Brand/Type'] if item['Brand/Type'] and item['Brand/Type'] != 'nan' else 'N/A' }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted">Length/Capacity:</small>
+                                    <div>{{ item['Length/Capacity'] if item['Length/Capacity'] and item['Length/Capacity'] != 'nan' else 'N/A' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i data-feather="save"></i> Update Item
+                        </button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i data-feather="arrow-left"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
