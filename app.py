@@ -119,13 +119,41 @@ def remove(row):
         df = df.drop(df.index[row])
         df = df.reset_index(drop=True)
         save_inventory(df)
-        log_history("Remove", f"Removed item: {removed_item}")
+        log_history("Remove", f"Removed item: {removed_item}", restore_data=removed_item)
         flash("Product removed successfully.", "success")
     else:
         flash("Invalid item selected.", "danger")
     return redirect(url_for("index"))
 
-
+@app.route("/undo/<timestamp>", methods=["POST"])
+def undo(timestamp):
+    import csv
+    restored = False
+    history_rows = []
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, newline='', encoding="utf-8") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                history_rows.append(row)
+    to_restore = None
+    for row in history_rows:
+        if row['Timestamp'] == timestamp and row['Action'] == "Remove":
+            to_restore = row
+            break
+    if to_restore and to_restore.get('RestoreData'):
+        try:
+            restore_data = eval(to_restore['RestoreData'])
+            df = load_inventory()
+            df = pd.concat([df, pd.DataFrame([restore_data])], ignore_index=True)
+            save_inventory(df)
+            log_history("Undo Remove", f"Restored item: {restore_data}")
+            flash("Item restored successfully.", "success")
+            restored = True
+        except Exception as e:
+            flash("Failed to restore item.", "danger")
+    else:
+        flash("Nothing to restore.", "danger")
+    return redirect(url_for("history"))
 
 @app.route("/update/<int:row>", methods=["GET", "POST"])
 def update(row):

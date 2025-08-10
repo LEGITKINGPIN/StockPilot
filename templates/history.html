@@ -24,6 +24,7 @@
                                 <th>Timestamp</th>
                                 <th>Action</th>
                                 <th>Details</th>
+                                <th>Actions</th>
                                 <th>View</th>
                             </tr>
                         </thead>
@@ -45,9 +46,21 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="text-truncate" style="max-width: 400px;" title="{{ entry['Details'] }}">
+                                    <div class="text-truncate" style="max-width: 350px;" title="{{ entry['Details'] }}">
                                         {{ entry['Details'] }}
                                     </div>
+                                </td>
+                                <td>
+                                    {% if entry['Action'] == 'Remove' and entry.get('RestoreData') %}
+                                    <form method="POST" action="{{ url_for('undo', timestamp=entry['Timestamp']) }}" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-success" 
+                                                onclick="return confirm('Are you sure you want to restore this item?')">
+                                            <i data-feather="undo" size="14"></i> Undo
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-outline-info" 
@@ -89,7 +102,8 @@
                 <ul class="mb-3">
                     <li><span class="badge bg-success me-2">Add</span> New items added to inventory</li>
                     <li><span class="badge bg-warning me-2">Update</span> Changes to existing items</li>
-                    <li><span class="badge bg-danger me-2">Remove</span> Items deleted from inventory</li>
+                    <li><span class="badge bg-danger me-2">Remove</span> Items deleted from inventory (can be undone)</li>
+                    <li><span class="badge bg-info me-2">Undo Remove</span> Previously deleted items restored</li>
                 </ul>
                 <p class="text-muted mb-0">
                     <small>Click the Details button to view complete information about each action.</small>
