@@ -54,16 +54,16 @@ def get_background_url():
             return url_for('static', filename=f'backgrounds/background.{ext}'), 'image'
     return None, None
 
-def log_history(action, details, restore_data=None):
+def log_history(action, details, restore_data=None, status="Active"):
     dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_exists = os.path.exists(HISTORY_FILE)
     with open(HISTORY_FILE, "a", encoding="utf-8") as f:
         if not log_exists:
-            f.write("Timestamp,Action,Details,RestoreData\n")
+            f.write("Timestamp,Action,Details,RestoreData,Status\n")
         safe_details = str(details).replace('"', '""')
         safe_restore = str(restore_data) if restore_data else ""
         safe_restore = safe_restore.replace('"', '""')
-        f.write(f'"{dt}","{action}","{safe_details}","{safe_restore}"\n')
+        f.write(f'"{dt}","{action}","{safe_details}","{safe_restore}","{status}"\n')
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -117,12 +117,74 @@ def add():
             "Quantity": int(request.form.get("quantity", "0")),
             "Notes": request.form.get("notes", "")
         }
+
+        # Check for duplicates
+        # Preset definition: Category, Subcategory, Item, Brand/Type, Length/Capacity
+        mask = (
+            (df["Category"] == new_item["Category"]) &
+            (df["Subcategory"] == new_item["Subcategory"]) &
+            (df["Item"] == new_item["Item"]) &
+            (df["Brand/Type"] == new_item["Brand/Type"]) &
+            (df["Length/Capacity"] == new_item["Length/Capacity"])
+        )
+        
+        if mask.any():
+            # Duplicate found
+            existing_index = df.index[mask][0]
+            existing_item = df.iloc[existing_index].to_dict()
+            return render_template("confirm_add.html", 
+                                   new_item=new_item, 
+                                   existing_item=existing_item,
+                                   existing_index=existing_index,
+                                   background_url=background_url, 
+                                   bg_type=bg_type, 
+                                   theme_color=theme_color)
+
         df = pd.concat([df, pd.DataFrame([new_item])], ignore_index=True)
         save_inventory(df)
         log_history("Add", f"Added item: {new_item}")
         flash("Product added successfully.", "success")
         return redirect(url_for("index"))
     return render_template("add.html", background_url=background_url, bg_type=bg_type, theme_color=theme_color)
+
+@app.route("/add_confirm", methods=["POST"])
+def add_confirm():
+    action = request.form.get("action")
+    existing_index = int(request.form.get("existing_index"))
+    
+    # Reconstruct new_item from form data (passed as hidden fields or similar, 
+    # but for simplicity we can just grab the fields again if we passed them, 
+    # OR better: pass them as hidden inputs in the confirm_add.html form)
+    # Let's assume confirm_add.html sends these back.
+    new_item = {
+        "Category": request.form.get("category", ""),
+        "Subcategory": request.form.get("subcategory", ""),
+        "Item": request.form.get("item", ""),
+        "Brand/Type": request.form.get("brand_type", ""),
+        "Length/Capacity": request.form.get("length_capacity", ""),
+        "Quantity": int(request.form.get("quantity", "0")),
+        "Notes": request.form.get("notes", "")
+    }
+
+    df = load_inventory()
+    
+    if action == "add_to_existing":
+        current_qty = int(df.at[existing_index, "Quantity"])
+        df.at[existing_index, "Quantity"] = current_qty + new_item["Quantity"]
+        # Optionally update notes or leave as is? User said "Add to existing row", usually implies merging quantity.
+        # Let's append notes if they are different? Or just leave them. 
+        # Requirement said: "Add to existing row" and "Replace the row data".
+        # "Add to existing row" usually means sum quantity.
+        log_history("Update", f"Added quantity {new_item['Quantity']} to item at index {existing_index}")
+        flash("Quantity updated successfully.", "success")
+        
+    elif action == "replace":
+        df.iloc[existing_index] = new_item
+        log_history("Update", f"Replaced item at index {existing_index} with new data")
+        flash("Item replaced successfully.", "success")
+        
+    save_inventory(df)
+    return redirect(url_for("index"))
 
 @app.route("/import", methods=["POST"])
 def import_file():
@@ -194,29 +256,61 @@ def undo(timestamp):
     import csv
     restored = False
     history_rows = []
+    
+    # Read all rows
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, newline='', encoding="utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 history_rows.append(row)
+    
+    target_row_index = -1
     to_restore = None
-    for row in history_rows:
+    
+    # Find the specific row to undo
+    for i, row in enumerate(history_rows):
         if row['Timestamp'] == timestamp and row['Action'] == "Remove":
             to_restore = row
+            target_row_index = i
             break
-    if to_restore and to_restore.get('RestoreData'):
-        try:
-            restore_data = eval(to_restore['RestoreData'])
-            df = load_inventory()
-            df = pd.concat([df, pd.DataFrame([restore_data])], ignore_index=True)
-            save_inventory(df)
-            log_history("Undo Remove", f"Restored item: {restore_data}")
-            flash("Item restored successfully.", "success")
-            restored = True
-        except Exception as e:
-            flash("Failed to restore item.", "danger")
+            
+    if to_restore:
+        # Check status
+        current_status = to_restore.get('Status', 'Active') # Default to Active if column missing
+        
+        if current_status == 'Undone':
+            flash("This item has already been restored.", "warning")
+            return redirect(url_for("history"))
+
+        if to_restore.get('RestoreData'):
+            try:
+                restore_data = eval(to_restore['RestoreData'])
+                df = load_inventory()
+                df = pd.concat([df, pd.DataFrame([restore_data])], ignore_index=True)
+                save_inventory(df)
+                
+                # Update the status in history_rows
+                history_rows[target_row_index]['Status'] = 'Undone'
+                
+                # Rewrite the history file
+                fieldnames = reader.fieldnames
+                if 'Status' not in fieldnames:
+                    fieldnames.append('Status')
+                    
+                with open(HISTORY_FILE, 'w', newline='', encoding="utf-8") as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(history_rows)
+
+                log_history("Undo Remove", f"Restored item: {restore_data}")
+                flash("Item restored successfully.", "success")
+                restored = True
+            except Exception as e:
+                print(f"Undo error: {e}")
+                flash("Failed to restore item.", "danger")
     else:
-        flash("Nothing to restore.", "danger")
+        flash("History record not found.", "danger")
+        
     return redirect(url_for("history"))
 
 @app.route("/update/<int:row>", methods=["GET", "POST"])

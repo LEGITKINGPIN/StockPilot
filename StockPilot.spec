@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['main.py'],
+    ['app.py'],
     pathex=[],
     binaries=[],
     datas=[('templates', 'templates'), ('static', 'static')],
-    hiddenimports=['pandas._libs.tslibs.base'],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

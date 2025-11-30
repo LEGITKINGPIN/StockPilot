@@ -51,12 +51,19 @@
                                 </td>
                                 <td>
                                     {% if entry['Action'] == 'Remove' and entry.get('RestoreData') %}
-                                    <form method="POST" action="{{ url_for('undo', timestamp=entry['Timestamp']) }}" style="display: inline;">
-                                        <button type="submit" class="btn btn-sm btn-outline-info" 
-                                                onclick="return confirm('Are you sure you want to restore this item?')">
+                                    {% if entry.get('Status') == 'Undone' %}
+                                    <button class="btn btn-sm btn-secondary" disabled title="Already restored">
+                                        <i data-feather="check"></i> Restored
+                                    </button>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('undo', timestamp=entry['Timestamp']) }}"
+                                        style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-info"
+                                            onclick="return confirm('Are you sure you want to restore this item?')">
                                             <i data-feather="undo"></i> Undo
                                         </button>
                                     </form>
+                                    {% endif %}
                                     {% else %}
                                     <span class="text-muted">-</span>
                                     {% endif %}
@@ -95,7 +102,8 @@
                 <ul class="mb-3">
                     <li><span class="badge bg-success me-2">Add</span> New items added to inventory</li>
                     <li><span class="badge bg-warning me-2">Update</span> Changes to existing items</li>
-                    <li><span class="badge bg-danger me-2">Remove</span> Items deleted from inventory (can be undone)</li>
+                    <li><span class="badge bg-danger me-2">Remove</span> Items deleted from inventory (can be undone)
+                    </li>
                     <li><span class="badge bg-info me-2">Undo Remove</span> Previously deleted items restored</li>
                 </ul>
                 <p class="text-muted mb-0">

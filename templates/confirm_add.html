@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Duplicate Item Found - {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0">
+                    <i data-feather="alert-triangle"></i> Duplicate Item Found
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="lead">An item with the same details already exists in the inventory.</p>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <strong>Existing Item</strong>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled">
+                                    <li><strong>Category:</strong> {{ existing_item['Category'] }}</li>
+                                    <li><strong>Subcategory:</strong> {{ existing_item['Subcategory'] }}</li>
+                                    <li><strong>Item:</strong> {{ existing_item['Item'] }}</li>
+                                    <li><strong>Brand/Type:</strong> {{ existing_item['Brand/Type'] }}</li>
+                                    <li><strong>Length/Capacity:</strong> {{ existing_item['Length/Capacity'] }}</li>
+                                    <li><strong>Current Quantity:</strong> <span class="badge bg-primary">{{
+                                            existing_item['Quantity'] }}</span></li>
+                                    <li><strong>Notes:</strong> {{ existing_item['Notes'] }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <strong>New Item</strong>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled">
+                                    <li><strong>Category:</strong> {{ new_item['Category'] }}</li>
+                                    <li><strong>Subcategory:</strong> {{ new_item['Subcategory'] }}</li>
+                                    <li><strong>Item:</strong> {{ new_item['Item'] }}</li>
+                                    <li><strong>Brand/Type:</strong> {{ new_item['Brand/Type'] }}</li>
+                                    <li><strong>Length/Capacity:</strong> {{ new_item['Length/Capacity'] }}</li>
+                                    <li><strong>New Quantity:</strong> <span class="badge bg-success">+{{
+                                            new_item['Quantity'] }}</span></li>
+                                    <li><strong>Notes:</strong> {{ new_item['Notes'] }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form action="{{ url_for('add_confirm') }}" method="POST">
+                    <!-- Pass necessary data -->
+                    <input type="hidden" name="existing_index" value="{{ existing_index }}">
+                    <input type="hidden" name="category" value="{{ new_item['Category'] }}">
+                    <input type="hidden" name="subcategory" value="{{ new_item['Subcategory'] }}">
+                    <input type="hidden" name="item" value="{{ new_item['Item'] }}">
+                    <input type="hidden" name="brand_type" value="{{ new_item['Brand/Type'] }}">
+                    <input type="hidden" name="length_capacity" value="{{ new_item['Length/Capacity'] }}">
+                    <input type="hidden" name="quantity" value="{{ new_item['Quantity'] }}">
+                    <input type="hidden" name="notes" value="{{ new_item['Notes'] }}">
+
+                    <div class="d-grid gap-3">
+                        <button type="submit" name="action" value="add_to_existing" class="btn btn-success btn-lg">
+                            <i data-feather="plus-circle"></i> Add to Existing Row
+                            <div class="small text-white-50">Increase quantity by {{ new_item['Quantity'] }} (Total: {{
+                                existing_item['Quantity']|int + new_item['Quantity']|int }})</div>
+                        </button>
+
+                        <button type="submit" name="action" value="replace" class="btn btn-warning btn-lg">
+                            <i data-feather="refresh-cw"></i> Replace Row Data
+                            <div class="small text-dark-50">Overwrite existing item with new details</div>
+                        </button>
+
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i data-feather="x"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
