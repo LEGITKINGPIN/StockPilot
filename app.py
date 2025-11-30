@@ -124,6 +124,57 @@ def add():
         return redirect(url_for("index"))
     return render_template("add.html", background_url=background_url, bg_type=bg_type, theme_color=theme_color)
 
+@app.route("/import", methods=["POST"])
+def import_file():
+    if 'file' not in request.files:
+        flash('No file part', 'danger')
+        return redirect(url_for('index'))
+    file = request.files['file']
+    if file.filename == '':
+        flash('No selected file', 'danger')
+        return redirect(url_for('index'))
+    
+    if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx') or file.filename.endswith('.xls')):
+        try:
+            if file.filename.endswith('.csv'):
+                new_df = pd.read_csv(file)
+            else:
+                new_df = pd.read_excel(file)
+            
+            # Validate required columns
+            required_columns = ["Category", "Item", "Quantity"]
+            if not all(col in new_df.columns for col in required_columns):
+                flash(f'Missing required columns: {", ".join(required_columns)}', 'danger')
+                return redirect(url_for('index'))
+            
+            # Normalize columns to match inventory schema
+            # Ensure all schema columns exist
+            schema_columns = ["Category", "Subcategory", "Item", "Brand/Type", "Length/Capacity", "Quantity", "Notes"]
+            for col in schema_columns:
+                if col not in new_df.columns:
+                    new_df[col] = ""
+            
+            # Select only schema columns
+            new_df = new_df[schema_columns]
+            
+            # Clean data (handle NaNs)
+            new_df = new_df.fillna("")
+            
+            # Append to existing inventory
+            current_df = load_inventory()
+            updated_df = pd.concat([current_df, new_df], ignore_index=True)
+            save_inventory(updated_df)
+            
+            log_history("Import", f"Imported {len(new_df)} items from {file.filename}")
+            flash(f'Successfully imported {len(new_df)} items.', 'success')
+            
+        except Exception as e:
+            flash(f'Error importing file: {str(e)}', 'danger')
+    else:
+        flash('Invalid file type. Please upload CSV or Excel.', 'danger')
+        
+    return redirect(url_for('index'))
+
 @app.route("/remove/<int:row>", methods=["POST"])
 def remove(row):
     df = load_inventory()

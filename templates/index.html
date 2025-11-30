@@ -15,8 +15,8 @@
                     </div>
                     <div class="col-md-6">
                         <form method="POST" class="d-flex">
-                            <input type="text" name="search" class="form-control" placeholder="Search inventory..." 
-                                   value="{{ search }}" id="searchInput">
+                            <input type="text" name="search" class="form-control" placeholder="Search inventory..."
+                                value="{{ search }}" id="searchInput">
                             <button type="submit" class="btn btn-outline-secondary ms-2">
                                 <i data-feather="search"></i>
                             </button>
@@ -45,27 +45,32 @@
                             <tr class="inventory-item">
                                 <td><strong class="text-primary">{{ item['Item'] }}</strong></td>
                                 <td>{{ item['Category'] }}</td>
-                                <td>{{ item['Subcategory'] if item['Subcategory'] and item['Subcategory'].strip() else '-' }}</td>
-                                <td>{{ item['Brand/Type'] if item['Brand/Type'] and item['Brand/Type'].strip() else '-' }}</td>
-                                <td>{{ item['Length/Capacity'] if item['Length/Capacity'] and item['Length/Capacity'].strip() else '-' }}</td>
+                                <td>{{ item['Subcategory'] if item['Subcategory'] and item['Subcategory'].strip() else
+                                    '-' }}</td>
+                                <td>{{ item['Brand/Type'] if item['Brand/Type'] and item['Brand/Type'].strip() else '-'
+                                    }}</td>
+                                <td>{{ item['Length/Capacity'] if item['Length/Capacity'] and
+                                    item['Length/Capacity'].strip() else '-' }}</td>
                                 <td>
                                     <span class="badge {{ 'bg-warning' if item['Quantity'] <= 5 else 'bg-success' }}">
                                         {{ item['Quantity'] }}
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="text-truncate" style="max-width: 150px;" title="{{ item['Notes'] if item['Notes'] and item['Notes'].strip() else '' }}">
+                                    <div class="text-truncate" style="max-width: 150px;"
+                                        title="{{ item['Notes'] if item['Notes'] and item['Notes'].strip() else '' }}">
                                         {{ item['Notes'] if item['Notes'] and item['Notes'].strip() else '-' }}
                                     </div>
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
-                                        <a href="{{ url_for('update', row=loop.index0) }}" class="btn btn-outline-primary btn-sm">
+                                        <a href="{{ url_for('update', row=loop.index0) }}"
+                                            class="btn btn-outline-primary btn-sm">
                                             <i data-feather="edit" size="14"></i>
                                         </a>
-                                        <form method="POST" action="{{ url_for('remove', row=loop.index0) }}" 
-                                              style="display: inline;" 
-                                              onsubmit="return confirm('Are you sure you want to remove this item?')">
+                                        <form method="POST" action="{{ url_for('remove', row=loop.index0) }}"
+                                            style="display: inline;"
+                                            onsubmit="return confirm('Are you sure you want to remove this item?')">
                                             <button type="submit" class="btn btn-outline-danger btn-sm">
                                                 <i data-feather="trash" size="14"></i>
                                             </button>
@@ -89,6 +94,10 @@
                     <a href="{{ url_for('add') }}" class="btn btn-primary">
                         <i data-feather="plus"></i> Add First Item
                     </a>
+                    <button type="button" class="btn btn-outline-primary ms-2" data-bs-toggle="modal"
+                        data-bs-target="#importModal">
+                        <i data-feather="upload"></i> Import CSV/Excel
+                    </button>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -96,52 +105,91 @@
         </div>
     </div>
 </div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">Import Inventory</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('import_file') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">Select CSV or Excel File</label>
+                        <input class="form-control" type="file" id="importFile" name="file" accept=".csv, .xlsx, .xls"
+                            required>
+                    </div>
+                    <div class="alert alert-info">
+                        <small>
+                            <strong>Required Columns:</strong> Category, Item, Quantity<br>
+                            <strong>Optional:</strong> Subcategory, Brand/Type, Length/Capacity, Notes
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// Real-time search functionality
-let searchTimeout;
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(function() {
-        const query = e.target.value;
-        if (query.length >= 2 || query.length === 0) {
-            fetch(`/search?search=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    updateInventoryTable(data.items);
-                })
-                .catch(error => console.error('Search error:', error));
+    // Move modal to body to avoid z-index issues
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('importModal');
+        if (modal) {
+            document.body.appendChild(modal);
         }
-    }, 300);
-});
+    });
 
-function updateInventoryTable(items) {
-    const tableBody = document.querySelector('#inventoryTable tbody');
-    const tableContainer = document.querySelector('.table-responsive');
-    
-    if (items.length === 0) {
-        tableContainer.innerHTML = `
+    // Real-time search functionality
+    let searchTimeout;
+    document.getElementById('searchInput').addEventListener('input', function (e) {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function () {
+            const query = e.target.value;
+            if (query.length >= 2 || query.length === 0) {
+                fetch(`/search?search=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateInventoryTable(data.items);
+                    })
+                    .catch(error => console.error('Search error:', error));
+            }
+        }, 300);
+    });
+
+    function updateInventoryTable(items) {
+        const tableBody = document.querySelector('#inventoryTable tbody');
+        const tableContainer = document.querySelector('.table-responsive');
+
+        if (items.length === 0) {
+            tableContainer.innerHTML = `
             <div class="text-center py-5">
                 <i data-feather="search" size="64" class="text-muted mb-3"></i>
                 <h5 class="text-muted">No items found</h5>
                 <p class="text-muted">Try adjusting your search criteria</p>
             </div>
         `;
-        feather.replace();
-        return;
-    }
-    
-    let html = '';
-    items.forEach((item, index) => {
-        const quantityBadge = item.Quantity <= 5 ? 'bg-warning' : 'bg-success';
-        const subcategory = item.Subcategory && item.Subcategory.trim() !== '' ? item.Subcategory : '-';
-        const brandType = item['Brand/Type'] && item['Brand/Type'].trim() !== '' ? item['Brand/Type'] : '-';
-        const lengthCapacity = item['Length/Capacity'] && item['Length/Capacity'].trim() !== '' ? item['Length/Capacity'] : '-';
-        const notes = item.Notes && item.Notes.trim() !== '' ? item.Notes : '-';
-        
-        html += `
+            feather.replace();
+            return;
+        }
+
+        let html = '';
+        items.forEach((item, index) => {
+            const quantityBadge = item.Quantity <= 5 ? 'bg-warning' : 'bg-success';
+            const subcategory = item.Subcategory && item.Subcategory.trim() !== '' ? item.Subcategory : '-';
+            const brandType = item['Brand/Type'] && item['Brand/Type'].trim() !== '' ? item['Brand/Type'] : '-';
+            const lengthCapacity = item['Length/Capacity'] && item['Length/Capacity'].trim() !== '' ? item['Length/Capacity'] : '-';
+            const notes = item.Notes && item.Notes.trim() !== '' ? item.Notes : '-';
+
+            html += `
             <tr class="inventory-item">
                 <td><strong class="text-primary">${item.Item || ''}</strong></td>
                 <td>${item.Category || ''}</td>
@@ -174,10 +222,10 @@ function updateInventoryTable(items) {
                 </td>
             </tr>
         `;
-    });
-    
-    if (!document.querySelector('#inventoryTable')) {
-        tableContainer.innerHTML = `
+        });
+
+        if (!document.querySelector('#inventoryTable')) {
+            tableContainer.innerHTML = `
             <table class="table table-hover" id="inventoryTable">
                 <thead class="table-dark">
                     <tr>
@@ -194,10 +242,10 @@ function updateInventoryTable(items) {
                 <tbody>${html}</tbody>
             </table>
         `;
-    } else {
-        tableBody.innerHTML = html;
+        } else {
+            tableBody.innerHTML = html;
+        }
+        feather.replace();
     }
-    feather.replace();
-}
 </script>
 {% endblock %}

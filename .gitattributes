@@ -1,0 +1,2 @@
+dist/StockPilot/StockPilot.exe filter=lfs diff=lfs merge=lfs -text
+dist/StockPilot.exe filter=lfs diff=lfs merge=lfs -text

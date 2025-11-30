@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,6 +18,7 @@
             z-index: -2;
             opacity: 0.1;
         }
+
         .background-image {
             position: fixed;
             top: 0;
@@ -28,32 +30,39 @@
             z-index: -2;
             opacity: 0.1;
         }
+
         .content-wrapper {
             position: relative;
-            z-index: 1;
             min-height: 100vh;
         }
+
         .navbar-brand {
             font-weight: bold;
         }
+
         .card {
             background: rgba(var(--bs-dark-rgb), 0.95);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
         .btn:hover {
             transform: translateY(-1px);
             transition: all 0.2s ease;
         }
+
         .inventory-item {
             transition: all 0.2s ease;
         }
+
         .inventory-item:hover {
             background-color: rgba(255, 255, 255, 0.05);
         }
+
         .table-hover tbody tr:hover {
             background-color: rgba(255, 255, 255, 0.05);
         }
+
         .table th {
             border-top: none;
             font-weight: 600;
@@ -61,10 +70,12 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
         .table td {
             vertical-align: middle;
             font-size: 0.9rem;
         }
+
         .btn-group-sm .btn {
             padding: 0.25rem 0.5rem;
             font-size: 0.75rem;
@@ -73,11 +84,18 @@
     {% if theme_color %}
     <style>
         :root {
-            --custom-theme-color: {{ theme_color }};
+            --custom-theme-color: {
+                    {
+                    theme_color
+                }
+            }
+
+            ;
         }
     </style>
     {% endif %}
 </head>
+
 <body>
     {% if background_url and bg_type == 'video' %}
     <video class="background-video" autoplay muted loop>
@@ -131,11 +149,11 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('export_excel') }}">
-                                    <i data-feather="file-text"></i> Excel
-                                </a></li>
+                                        <i data-feather="file-text"></i> Excel
+                                    </a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('export_csv') }}">
-                                    <i data-feather="file"></i> CSV
-                                </a></li>
+                                        <i data-feather="file"></i> CSV
+                                    </a></li>
                             </ul>
                         </li>
                     </ul>
@@ -146,14 +164,15 @@
         <main class="py-4">
             <div class="container">
                 {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show"
+                    role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
                 {% endwith %}
 
                 {% block content %}{% endblock %}
@@ -169,4 +188,5 @@
     </script>
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

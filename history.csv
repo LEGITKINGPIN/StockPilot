@@ -1,4 +1,4 @@
-Timestamp,Action,Details
+Timestamp,Action,Details,RestoreData
 "2025-08-10 21:54:59","Update","Before: {'Category': 'Cameras', 'Subcategory': 'Connectors', 'Item': 'BNC connector', 'Brand/Type': nan, 'Length/Capacity': nan, 'Quantity': 210, 'Notes': nan}, After: {'Category': 'Cameras', 'Subcategory': 'Connectors', 'Item': 'BNC connector', 'Brand/Type': nan, 'Length/Capacity': nan, 'Quantity': '211', 'Notes': 'nan'}"
 "2025-08-10 23:18:08","Update","Before: {'Category': 'Cameras', 'Subcategory': 'Connectors', 'Item': 'BNC connector', 'Brand/Type': nan, 'Length/Capacity': nan, 'Quantity': 211, 'Notes': nan}, After: {'Category': 'Cameras', 'Subcategory': 'Connectors', 'Item': 'BNC connector', 'Brand/Type': nan, 'Length/Capacity': nan, 'Quantity': '210', 'Notes': 'nan'}",""
 "2025-08-10 23:38:28","Update","Before: {'Category': 'Cameras', 'Subcategory': 'Connectors', 'Item': 'BNC connector', 'Brand/Type': nan, 'Length/Capacity': nan, 'Quantity': 210, 'Notes': nan}, After: {'Category': 'Cameras', 'Subcategory': 'Connectors', 'Item': 'BNC connector', 'Brand/Type': nan, 'Length/Capacity': nan, 'Quantity': '420', 'Notes': 'BNC'}",""
