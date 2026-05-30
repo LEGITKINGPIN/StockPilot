@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockPilot — Inventory Management</title>
+  <meta name="description" content="StockPilot is a modern, offline-capable inventory management system. Track items, view analytics, and export your data — all in the browser.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+  <!-- Feather Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- SheetJS (XLSX) for Excel export/import -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    /* ===================== DESIGN TOKENS ===================== */
+    :root {
+      --bg-deep:    #0a0d14;
+      --bg-card:    #111622;
+      --bg-card2:   #161d2e;
+      --bg-input:   #1a2235;
+      --border:     rgba(255,255,255,0.07);
+      --border-h:   rgba(255,255,255,0.15);
+      --accent:     #6c63ff;
+      --accent-h:   #8c85ff;
+      --accent-glow: rgba(108,99,255,0.35);
+      --success:    #22c55e;
+      --warning:    #f59e0b;
+      --danger:     #ef4444;
+      --info:       #38bdf8;
+      --text-1:     #f1f5f9;
+      --text-2:     #94a3b8;
+      --text-3:     #475569;
+      --radius:     14px;
+      --radius-sm:  8px;
+      --shadow:     0 4px 32px rgba(0,0,0,0.5);
+      --nav-h:      64px;
+      --sidebar-w:  240px;
+
+      /* User customisable */
+      --theme-accent: #6c63ff;
+    }
+
+    /* ===================== RESET & BASE ===================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-1);
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background 0.4s;
+    }
+
+    /* ===================== SCROLLBAR ===================== */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-h); border-radius: 3px; }
+
+    /* ===================== BACKGROUND LAYER ===================== */
+    #bgLayer {
+      position: fixed; inset: 0; z-index: 0;
+      background-size: cover; background-position: center;
+      opacity: 0.08; pointer-events: none;
+      transition: opacity 0.5s;
+    }
+    #bgVideo {
+      position: fixed; inset: 0; z-index: 0;
+      width: 100%; height: 100%; object-fit: cover;
+      opacity: 0.06; pointer-events: none;
+    }
+
+    /* ===================== MESH GRADIENT ===================== */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(108,99,255,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(56,189,248,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* ===================== LAYOUT ===================== */
+    #app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* ===================== TOPNAV ===================== */
+    #topnav {
+      position: sticky; top: 0; z-index: 100;
+      height: var(--nav-h);
+      background: rgba(10,13,20,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 24px;
+      gap: 12px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 1.15rem;
+      color: var(--text-1);
+      text-decoration: none;
+      letter-spacing: -0.3px;
+    }
+    .brand-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), #38bdf8);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .brand-icon svg { width: 18px; height: 18px; stroke: #fff; stroke-width: 2.5; }
+
+    .nav-spacer { flex: 1; }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 4px;
+      list-style: none;
+    }
+    .nav-links li a, .nav-links li button {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 13px; border-radius: var(--radius-sm);
+      color: var(--text-2); font-size: 0.85rem; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+      border: none; background: none;
+      transition: all 0.18s;
+    }
+    .nav-links li a:hover, .nav-links li button:hover,
+    .nav-links li a.active, .nav-links li button.active {
+      color: var(--text-1);
+      background: rgba(255,255,255,0.06);
+    }
+    .nav-links li a.active { color: var(--accent); }
+    .nav-links li a svg, .nav-links li button svg { width: 15px; height: 15px; }
+
+    /* Export dropdown */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown-menu {
+      display: none; position: absolute; right: 0; top: calc(100% + 8px);
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 6px;
+      min-width: 160px; box-shadow: var(--shadow);
+      z-index: 200;
+    }
+    .nav-dropdown-menu.open { display: block; }
+    .nav-dropdown-menu a {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 6px;
+      color: var(--text-2); font-size: 0.84rem;
+      text-decoration: none; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .nav-dropdown-menu a:hover { background: rgba(255,255,255,0.05); color: var(--text-1); }
+    .nav-dropdown-menu a svg { width: 14px; height: 14px; }
+
+    /* hamburger */
+    #menuBtn { display: none; background: none; border: none; color: var(--text-2); cursor: pointer; padding: 6px; }
+
+    /* ===================== PAGES ===================== */
+    .page { display: none; flex: 1; padding: 28px 28px; }
+    .page.active { display: block; }
+
+    /* ===================== PAGE HEADERS ===================== */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+    }
+    .page-title {
+      font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px;
+    }
+    .page-title span { color: var(--accent); }
+
+    /* ===================== CARDS ===================== */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-header-bar {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      flex-wrap: wrap;
+    }
+    .card-header-bar h5 {
+      font-size: 0.95rem; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-header-bar h5 svg { width: 16px; height: 16px; }
+
+    /* ===================== STAT CARDS ===================== */
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      display: flex; flex-direction: column; gap: 6px;
+      position: relative; overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--card-color, var(--accent)), transparent);
+    }
+    .stat-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(108,99,255,0.12);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 4px;
+    }
+    .stat-icon svg { width: 20px; height: 20px; stroke: var(--card-color, var(--accent)); }
+    .stat-value { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; }
+    .stat-label { font-size: 0.78rem; color: var(--text-2); font-weight: 500; text-transform: uppercase; letter-spacing: 0.6px; }
+
+    /* ===================== TABLE ===================== */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { border-bottom: 1px solid var(--border); }
+    thead th {
+      padding: 12px 16px; text-align: left;
+      font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.8px; color: var(--text-3);
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.025); }
+    tbody td {
+      padding: 12px 16px; font-size: 0.875rem; color: var(--text-2);
+      vertical-align: middle;
+    }
+    tbody td.item-name { color: var(--text-1); font-weight: 600; }
+
+    /* qty badge */
+    .qty-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 52px; padding: 3px 10px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 700;
+    }
+    .qty-badge.low { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+    .qty-badge.ok  { background: rgba(34,197,94,0.12);  color: var(--success); border: 1px solid rgba(34,197,94,0.25); }
+
+    /* action buttons */
+    .act-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 30px; height: 30px; border-radius: 7px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-3); cursor: pointer; transition: all 0.15s;
+    }
+    .act-btn svg { width: 14px; height: 14px; }
+    .act-btn:hover.edit { border-color: var(--accent); color: var(--accent); background: rgba(108,99,255,0.1); }
+    .act-btn:hover.del  { border-color: var(--danger); color: var(--danger);  background: rgba(239,68,68,0.1); }
+
+    /* ===================== FORMS ===================== */
+    .form-group { margin-bottom: 18px; }
+    .form-label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
+    .form-control {
+      width: 100%; padding: 10px 14px;
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-1);
+      font-family: inherit; font-size: 0.875rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+    .form-control:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,99,255,0.2);
+    }
+    .form-control::placeholder { color: var(--text-3); }
+    select.form-control option { background: var(--bg-card); }
+    textarea.form-control { resize: vertical; min-height: 80px; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* ===================== BUTTONS ===================== */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 9px 20px; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 0.875rem; font-weight: 600;
+      cursor: pointer; border: none; transition: all 0.18s;
+      text-decoration: none;
+    }
+    .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(108,99,255,0.35);
+    }
+    .btn-primary:hover { background: var(--accent-h); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(108,99,255,0.45); }
+    .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text-2); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: rgba(255,255,255,0.1); color: var(--text-1); }
+    .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover { background: rgba(239,68,68,0.2); }
+    .btn-success { background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
+    .btn-success:hover { background: rgba(34,197,94,0.2); }
+    .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+    .btn-icon { width: 36px; height: 36px; padding: 0; border-radius: var(--radius-sm); }
+
+    /* ===================== SEARCH BAR ===================== */
+    .search-wrap {
+      position: relative; flex: 1; max-width: 340px;
+    }
+    .search-wrap svg {
+      position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+      width: 15px; height: 15px; stroke: var(--text-3); pointer-events: none;
+    }
+    .search-wrap input {
+      padding-left: 36px !important;
+    }
+
+    /* ===================== ALERTS / TOASTS ===================== */
+    #toastContainer {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      font-size: 0.875rem; font-weight: 500;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: var(--shadow);
+      animation: toastIn 0.25s ease;
+      max-width: 320px;
+    }
+    .toast-item.success { border-left: 3px solid var(--success); color: var(--success); }
+    .toast-item.danger  { border-left: 3px solid var(--danger);  color: var(--danger);  }
+    .toast-item.warning { border-left: 3px solid var(--warning); color: var(--warning); }
+    .toast-item.info    { border-left: 3px solid var(--info);    color: var(--info);    }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ===================== MODALS ===================== */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px; max-width: 540px; width: 90%;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      animation: modalIn 0.2s ease;
+    }
+    @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .modal-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+    .modal-title svg { width: 18px; height: 18px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+    /* ===================== EMPTY STATE ===================== */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-3);
+    }
+    .empty-state svg { width: 56px; height: 56px; margin-bottom: 16px; }
+    .empty-state h4 { font-size: 1.05rem; font-weight: 600; color: var(--text-2); margin-bottom: 8px; }
+    .empty-state p { font-size: 0.875rem; }
+
+    /* ===================== ANALYTICS ===================== */
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
+    .chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; }
+    .chart-card h6 { font-size: 0.85rem; font-weight: 600; color: var(--text-2); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.6px; }
+    canvas { max-height: 280px; }
+
+    /* ===================== HISTORY ===================== */
+    .history-row {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+    .history-row:last-child { border-bottom: none; }
+    .history-row:hover { background: rgba(255,255,255,0.02); }
+    .history-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      margin-top: 5px; flex-shrink: 0;
+    }
+    .history-dot.add    { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .history-dot.remove { background: var(--danger);  box-shadow: 0 0 6px var(--danger);  }
+    .history-dot.update { background: var(--accent);  box-shadow: 0 0 6px var(--accent);  }
+    .history-dot.undo   { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+    .history-dot.import { background: var(--info);    box-shadow: 0 0 6px var(--info);    }
+    .history-time { font-size: 0.75rem; color: var(--text-3); }
+    .history-action { font-size: 0.875rem; font-weight: 600; color: var(--text-1); }
+    .history-detail { font-size: 0.8rem; color: var(--text-2); margin-top: 2px; }
+    .undo-btn { margin-left: auto; flex-shrink: 0; }
+
+    /* ===================== CUSTOMISE ===================== */
+    .color-swatches { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+    .swatch {
+      width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+      border: 2px solid transparent; transition: border-color 0.15s, transform 0.15s;
+    }
+    .swatch:hover, .swatch.selected { border-color: #fff; transform: scale(1.15); }
+
+    .upload-zone {
+      border: 2px dashed var(--border-h); border-radius: var(--radius);
+      padding: 36px; text-align: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .upload-zone:hover { border-color: var(--accent); background: rgba(108,99,255,0.04); }
+    .upload-zone svg { width: 36px; height: 36px; stroke: var(--text-3); margin-bottom: 10px; }
+    .upload-zone p { font-size: 0.85rem; color: var(--text-3); }
+    .upload-zone span { color: var(--accent); font-weight: 600; }
+
+    /* ===================== LOW STOCK TABLE ===================== */
+    .low-stock-badge { color: var(--warning); font-weight: 700; }
+
+    /* ===================== MOBILE ===================== */
+    @media (max-width: 768px) {
+      #menuBtn { display: flex; }
+      .nav-links { display: none; flex-direction: column; position: absolute; top: var(--nav-h); left: 0; right: 0; background: rgba(10,13,20,0.97); border-bottom: 1px solid var(--border); padding: 12px; z-index: 99; }
+      .nav-links.open { display: flex; }
+      .page { padding: 16px; }
+      .form-row { grid-template-columns: 1fr; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ===================== MISC ===================== */
+    .text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+    .d-flex { display: flex; }
+    .align-center { align-items: center; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .mt-1 { margin-top: 4px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .mt-4 { margin-top: 16px; }
+    .mb-1 { margin-bottom: 4px; }
+    .mb-3 { margin-bottom: 12px; }
+    .fw-bold { font-weight: 700; }
+    .text-muted { color: var(--text-3); }
+    .text-accent { color: var(--accent); }
+    .w-100 { width: 100%; }
+    hr { border-color: var(--border); margin: 20px 0; }
+    .note-text { font-size: 0.78rem; color: var(--text-3); margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKGROUND LAYERS
+============================================================ -->
+<div id="bgLayer"></div>
+<video id="bgVideo" autoplay muted loop style="display:none"></video>
+
+<!-- ============================================================
+     TOAST CONTAINER
+============================================================ -->
+<div id="toastContainer"></div>
+
+<!-- ============================================================
+     APP SHELL
+============================================================ -->
+<div id="app">
+
+  <!-- TOP NAV -->
+  <nav id="topnav">
+    <a href="#" class="brand" onclick="navigate('home')">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="9 22 9 12 15 12 15 22" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      StockPilot
+    </a>
+
+    <button id="menuBtn" onclick="toggleMobileMenu()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+
+    <div class="nav-spacer"></div>
+
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#" id="nav-home" onclick="navigate('home')" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Home
+      </a></li>
+      <li><a href="#" id="nav-add" onclick="navigate('add')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Add Item
+      </a></li>
+      <li><a href="#" id="nav-analytics" onclick="navigate('analytics')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Analytics
+      </a></li>
+      <li><a href="#" id="nav-history" onclick="navigate('history')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> History
+      </a></li>
+      <li><a href="#" id="nav-customise" onclick="navigate('customise')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M22 12h-2M19.07 19.07l-1.41-1.41M12 22v-2M4.93 19.07l1.41-1.41M2 12h2M4.93 4.93l1.41 1.41"/></svg> Customize
+      </a></li>
+      <li class="nav-dropdown">
+        <button onclick="toggleExportMenu(event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export ▾
+        </button>
+        <div class="nav-dropdown-menu" id="exportMenu">
+          <a href="#" onclick="exportExcel()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Excel (.xlsx)
+          </a>
+          <a href="#" onclick="exportCSV()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> CSV
+          </a>
+        </div>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- ============================================================
+       PAGE: HOME
+  ============================================================ -->
+  <div class="page active" id="page-home">
+    <div class="page-header">
+      <h1 class="page-title">Inventory <span>Dashboard</span></h1>
+      <div class="d-flex gap-2">
+        <label class="btn btn-secondary btn-sm" for="importFileTrigger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Import
+        </label>
+        <input type="file" id="importFileTrigger" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImport(this)">
+        <button class="btn btn-primary btn-sm" onclick="navigate('add')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Item
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stat-grid" id="statsRow"></div>
+
+    <!-- Inventory table card -->
+    <div class="card">
+      <div class="card-header-bar">
+        <h5>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          Inventory Items
+        </h5>
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-control" type="text" id="searchInput" placeholder="Search items…" oninput="renderTable()">
+        </div>
+      </div>
+      <div id="inventoryTableWrap"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE: ADD ITEM
+  ============================================================ -->
+  <div class="page" id="page-add">
+    <div class="page-header">
+      <h1 class="page-title">Add <span>New Item</span></h1>
+    </div>
+    <div class="card" style="max-width:680px">
+      <div style="padding:28px">
+        <form id="addForm" onsubmit="submitAddForm(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Category *</label>
+              <input class="form-control" id="fCategory" required placeholder="e.g. Electronics">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Subcategory</label>
+              <input class="form-control" id="fSubcategory" placeholder="e.g. Cables">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Item Name *</label>
+            <input class="form-control" id="fItem" required placeholder="e.g. USB-C Hub 7-Port">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Brand / Type</label>
+              <input class="form-control" id="fBrand" placeholder="e.g. Anker">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Length / Capacity</label>
+              <input class="form-control" id="fLength" placeholder="e.g. 1m, 256GB">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantity *</label>
+            <input class="form-control" id="fQuantity" type="number" min="0" required placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="fNotes" placeholder="Any additional notes…"></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save Item
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="navigate('home')">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE: EDIT ITEM (dynamically filled)
+  ============================================================ -->
+  <div class="page" id="page-edit">
+    <div class="page-header">
+      <h1 class="page-title">Edit <span>Item</span></h1>
+    </div>
+    <div class="card" style="max-width:680px">
+      <div style="padding:28px">
+        <form id="editForm" onsubmit="submitEditForm(event)">
+          <input type="hidden" id="eIndex">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Category *</label>
+              <input class="form-control" id="eCategory" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Subcategory</label>
+              <input class="form-control" id="eSubcategory">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Item Name *</label>
+            <input class="form-control" id="eItem" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Brand / Type</label>
+              <input class="form-control" id="eBrand">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Length / Capacity</label>
+              <input class="form-control" id="eLength">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantity *</label>
+            <input class="form-control" id="eQuantity" type="number" min="0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-control" id="eNotes"></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Update Item
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="navigate('home')">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE: ANALYTICS
+  ============================================================ -->
+  <div class="page" id="page-analytics">
+    <div class="page-header">
+      <h1 class="page-title">Inventory <span>Analytics</span></h1>
+    </div>
+    <div class="stat-grid" id="analyticsStats"></div>
+    <div class="chart-grid mb-4" id="chartsGrid"></div>
+
+    <!-- Low stock -->
+    <div class="card">
+      <div class="card-header-bar">
+        <h5>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Low Stock Alerts <span style="color:var(--warning)" id="lowStockCount"></span>
+        </h5>
+      </div>
+      <div id="lowStockTable"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE: HISTORY
+  ============================================================ -->
+  <div class="page" id="page-history">
+    <div class="page-header">
+      <h1 class="page-title">Action <span>History</span></h1>
+      <button class="btn btn-danger btn-sm" onclick="clearHistory()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+        Clear All
+      </button>
+    </div>
+    <div class="card">
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PAGE: CUSTOMISE
+  ============================================================ -->
+  <div class="page" id="page-customise">
+    <div class="page-header">
+      <h1 class="page-title">Customize <span>Appearance</span></h1>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:20px;max-width:900px">
+
+      <!-- Accent colour -->
+      <div class="card">
+        <div style="padding:22px">
+          <h5 style="font-size:0.92rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 012-2h6a2 2 0 012 2v1.662"/></svg>
+            Accent Colour
+          </h5>
+          <div class="color-swatches" id="colorSwatches"></div>
+          <div class="form-group mt-3">
+            <label class="form-label">Custom colour</label>
+            <input type="color" class="form-control" id="customColor" value="#6c63ff" oninput="applyAccent(this.value,null)" style="height:42px;padding:4px 8px;cursor:pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- Background -->
+      <div class="card">
+        <div style="padding:22px">
+          <h5 style="font-size:0.92rem;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Background Media
+          </h5>
+          <label class="upload-zone" for="bgUpload">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p>Drop image or MP4 here, or <span>browse</span></p>
+            <p class="note-text">PNG, JPG, GIF, MP4 supported</p>
+          </label>
+          <input type="file" id="bgUpload" accept="image/*,video/mp4" style="display:none" onchange="handleBgUpload(this)">
+          <div id="bgPreview" class="mt-2"></div>
+          <button class="btn btn-danger btn-sm mt-3 w-100" onclick="removeBg()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            Remove Background
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ============================================================
+     DUPLICATE MODAL
+============================================================ -->
+<div class="modal-backdrop" id="dupModal">
+  <div class="modal-box">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Duplicate Item Found
+    </div>
+    <p style="font-size:0.875rem;color:var(--text-2);margin-bottom:14px">An item with matching identifiers already exists in your inventory.</p>
+    <div id="dupDetails" style="background:var(--bg-input);border-radius:var(--radius-sm);padding:14px;font-size:0.82rem;color:var(--text-2);margin-bottom:4px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeDupModal()">Cancel</button>
+      <button class="btn btn-success btn-sm" onclick="resolvedup('add')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add to Qty
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="resolvedup('replace')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.2"/></svg>
+        Replace
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     CONFIRM DELETE MODAL
+============================================================ -->
+<div class="modal-backdrop" id="delModal">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+      Confirm Delete
+    </div>
+    <p style="font-size:0.875rem;color:var(--text-2)">Are you sure you want to remove <strong id="delItemName"></strong>? This action is logged and can be undone from History.</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeDelModal()">Cancel</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SCRIPTS
+============================================================ -->
+<script>
+// ================================================================
+//  DATA LAYER — localStorage
+// ================================================================
+const KEYS = { inventory: 'sp_inventory', history: 'sp_history', settings: 'sp_settings' };
+
+function getInventory()  { try { return JSON.parse(localStorage.getItem(KEYS.inventory) || '[]'); } catch { return []; } }
+function saveInventory(d){ localStorage.setItem(KEYS.inventory, JSON.stringify(d)); }
+function getHistory()    { try { return JSON.parse(localStorage.getItem(KEYS.history)  || '[]'); } catch { return []; } }
+function saveHistory(d)  { localStorage.setItem(KEYS.history,   JSON.stringify(d)); }
+function getSettings()   { try { return JSON.parse(localStorage.getItem(KEYS.settings) || '{}'); } catch { return {}; } }
+function saveSettings(d) { localStorage.setItem(KEYS.settings,  JSON.stringify(d)); }
+
+function logHistory(action, details, restoreData = null, status = 'Active') {
+  const h = getHistory();
+  h.unshift({ ts: new Date().toISOString(), action, details, restoreData, status });
+  if (h.length > 500) h.length = 500;
+  saveHistory(h);
+}
+
+// ================================================================
+//  NAVIGATION
+// ================================================================
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+
+  // close mobile menu
+  document.getElementById('navLinks').classList.remove('open');
+
+  // Refresh content
+  if (page === 'home')      { renderStats(); renderTable(); }
+  if (page === 'analytics') { renderAnalytics(); }
+  if (page === 'history')   { renderHistory(); }
+  if (page === 'customise') { renderCustomise(); }
+  return false;
+}
+
+function toggleMobileMenu() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+function toggleExportMenu(e) {
+  e.stopPropagation();
+  document.getElementById('exportMenu').classList.toggle('open');
+}
+document.addEventListener('click', () => document.getElementById('exportMenu').classList.remove('open'));
+
+// ================================================================
+//  TOAST
+// ================================================================
+function toast(msg, type = 'success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast-item ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3200);
+}
+
+// ================================================================
+//  STATS
+// ================================================================
+const STAT_DEFS = [
+  { id: 'total', label: 'Total Items',    color: '#6c63ff', icon: 'package' },
+  { id: 'qty',   label: 'Total Qty',      color: '#38bdf8', icon: 'layers' },
+  { id: 'cats',  label: 'Categories',     color: '#22c55e', icon: 'grid' },
+  { id: 'low',   label: 'Low Stock (≤5)', color: '#f59e0b', icon: 'alert-triangle' },
+];
+
+function renderStats() {
+  const inv = getInventory();
+  const categories = [...new Set(inv.map(i => i.Category).filter(Boolean))];
+  const lowStock   = inv.filter(i => Number(i.Quantity) <= 5);
+  const totalQty   = inv.reduce((s, i) => s + Number(i.Quantity || 0), 0);
+  const vals = { total: inv.length, qty: totalQty, cats: categories.length, low: lowStock.length };
+
+  const el = document.getElementById('statsRow');
+  el.innerHTML = STAT_DEFS.map(d => `
+    <div class="stat-card" style="--card-color:${d.color}">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="${d.color}" stroke-width="2">${featherPath(d.icon)}</svg>
+      </div>
+      <div class="stat-value">${vals[d.id]}</div>
+      <div class="stat-label">${d.label}</div>
+    </div>
+  `).join('');
+}
+
+// ================================================================
+//  INVENTORY TABLE
+// ================================================================
+function renderTable() {
+  const q   = (document.getElementById('searchInput')?.value || '').toLowerCase();
+  const inv = getInventory().filter(item =>
+    !q || Object.values(item).some(v => String(v).toLowerCase().includes(q))
+  );
+  const wrap = document.getElementById('inventoryTableWrap');
+
+  if (inv.length === 0) {
+    wrap.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+      <h4>${q ? 'No results found' : 'No items yet'}</h4>
+      <p>${q ? 'Try a different search term.' : 'Click "Add Item" to get started.'}</p>
+    </div>`;
+    return;
+  }
+
+  // Map filtered items back to original indices
+  const allInv = getInventory();
+  wrap.innerHTML = `<div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Item</th><th>Category</th><th>Subcategory</th>
+        <th>Brand/Type</th><th>Length/Cap.</th>
+        <th>Qty</th><th>Notes</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${inv.map(item => {
+          const idx = allInv.indexOf(item);
+          const qty = Number(item.Quantity || 0);
+          return `<tr>
+            <td class="item-name">${escHtml(item.Item || '')}</td>
+            <td>${escHtml(item.Category || '—')}</td>
+            <td>${escHtml(item.Subcategory || '—')}</td>
+            <td>${escHtml(item['Brand/Type'] || '—')}</td>
+            <td>${escHtml(item['Length/Capacity'] || '—')}</td>
+            <td><span class="qty-badge ${qty <= 5 ? 'low' : 'ok'}">${qty}</span></td>
+            <td><div class="text-truncate" title="${escHtml(item.Notes || '')}">${escHtml(item.Notes || '—')}</div></td>
+            <td>
+              <div class="d-flex gap-2">
+                <button class="act-btn edit" title="Edit" onclick="openEdit(${idx})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="act-btn del" title="Delete" onclick="openDelModal(${idx})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ================================================================
+//  ADD ITEM
+// ================================================================
+let pendingItem = null;
+
+function submitAddForm(e) {
+  e.preventDefault();
+  const item = {
+    Category:        document.getElementById('fCategory').value.trim(),
+    Subcategory:     document.getElementById('fSubcategory').value.trim(),
+    Item:            document.getElementById('fItem').value.trim(),
+    'Brand/Type':    document.getElementById('fBrand').value.trim(),
+    'Length/Capacity': document.getElementById('fLength').value.trim(),
+    Quantity:        Number(document.getElementById('fQuantity').value),
+    Notes:           document.getElementById('fNotes').value.trim(),
+  };
+
+  const inv = getInventory();
+  const dupIdx = inv.findIndex(x =>
+    x.Category === item.Category &&
+    x.Subcategory === item.Subcategory &&
+    x.Item === item.Item &&
+    x['Brand/Type'] === item['Brand/Type'] &&
+    x['Length/Capacity'] === item['Length/Capacity']
+  );
+
+  if (dupIdx !== -1) {
+    pendingItem = { item, dupIdx };
+    const ex = inv[dupIdx];
+    document.getElementById('dupDetails').innerHTML =
+      `<strong>Existing:</strong> ${escHtml(ex.Item)} — Qty: ${ex.Quantity}<br>
+       <strong>New entry:</strong> Qty: ${item.Quantity}`;
+    document.getElementById('dupModal').classList.add('open');
+    return;
+  }
+
+  inv.push(item);
+  saveInventory(inv);
+  logHistory('Add', `Added: ${item.Item} (Qty: ${item.Quantity})`);
+  toast('Item added successfully!');
+  document.getElementById('addForm').reset();
+  navigate('home');
+}
+
+function closeDupModal()  { document.getElementById('dupModal').classList.remove('open'); pendingItem = null; }
+
+function resolvedup(action) {
+  if (!pendingItem) return;
+  const { item, dupIdx } = pendingItem;
+  const inv = getInventory();
+  if (action === 'add') {
+    inv[dupIdx].Quantity = Number(inv[dupIdx].Quantity) + item.Quantity;
+    logHistory('Update', `Qty merged: +${item.Quantity} to ${item.Item}`);
+    toast('Quantity updated!');
+  } else {
+    inv[dupIdx] = item;
+    logHistory('Update', `Replaced: ${item.Item}`);
+    toast('Item replaced!');
+  }
+  saveInventory(inv);
+  closeDupModal();
+  document.getElementById('addForm').reset();
+  navigate('home');
+}
+
+// ================================================================
+//  EDIT ITEM
+// ================================================================
+function openEdit(idx) {
+  const inv = getInventory();
+  const item = inv[idx];
+  document.getElementById('eIndex').value = idx;
+  document.getElementById('eCategory').value    = item.Category || '';
+  document.getElementById('eSubcategory').value = item.Subcategory || '';
+  document.getElementById('eItem').value        = item.Item || '';
+  document.getElementById('eBrand').value       = item['Brand/Type'] || '';
+  document.getElementById('eLength').value      = item['Length/Capacity'] || '';
+  document.getElementById('eQuantity').value    = item.Quantity || 0;
+  document.getElementById('eNotes').value       = item.Notes || '';
+  navigate('edit');
+}
+
+function submitEditForm(e) {
+  e.preventDefault();
+  const idx  = Number(document.getElementById('eIndex').value);
+  const inv  = getInventory();
+  const old  = { ...inv[idx] };
+  inv[idx] = {
+    Category:        document.getElementById('eCategory').value.trim(),
+    Subcategory:     document.getElementById('eSubcategory').value.trim(),
+    Item:            document.getElementById('eItem').value.trim(),
+    'Brand/Type':    document.getElementById('eBrand').value.trim(),
+    'Length/Capacity': document.getElementById('eLength').value.trim(),
+    Quantity:        Number(document.getElementById('eQuantity').value),
+    Notes:           document.getElementById('eNotes').value.trim(),
+  };
+  saveInventory(inv);
+  logHistory('Update', `Updated: ${inv[idx].Item}`, old);
+  toast('Item updated!');
+  navigate('home');
+}
+
+// ================================================================
+//  DELETE ITEM
+// ================================================================
+let pendingDelIdx = null;
+
+function openDelModal(idx) {
+  pendingDelIdx = idx;
+  const item = getInventory()[idx];
+  document.getElementById('delItemName').textContent = item?.Item || 'this item';
+  document.getElementById('delModal').classList.add('open');
+}
+function closeDelModal() { document.getElementById('delModal').classList.remove('open'); pendingDelIdx = null; }
+function confirmDelete() {
+  if (pendingDelIdx === null) return;
+  const inv     = getInventory();
+  const removed = inv[pendingDelIdx];
+  inv.splice(pendingDelIdx, 1);
+  saveInventory(inv);
+  logHistory('Remove', `Removed: ${removed.Item}`, removed);
+  toast('Item removed.', 'danger');
+  closeDelModal();
+  renderStats();
+  renderTable();
+}
+
+// ================================================================
+//  UNDO (from history)
+// ================================================================
+function undoRemove(tsISO) {
+  const h = getHistory();
+  const entry = h.find(e => e.ts === tsISO && e.action === 'Remove' && e.status === 'Active');
+  if (!entry || !entry.restoreData) { toast('Cannot undo this action.', 'warning'); return; }
+  if (entry.status === 'Undone')     { toast('Already restored.', 'warning'); return; }
+  const inv = getInventory();
+  inv.push(entry.restoreData);
+  saveInventory(inv);
+  entry.status = 'Undone';
+  saveHistory(h);
+  logHistory('Undo Remove', `Restored: ${entry.restoreData.Item}`);
+  toast('Item restored!', 'success');
+  renderHistory();
+}
+
+// ================================================================
+//  ANALYTICS
+// ================================================================
+let chartInstances = [];
+
+function renderAnalytics() {
+  const inv = getInventory();
+  const totalQty   = inv.reduce((s, i) => s + Number(i.Quantity || 0), 0);
+  const cats       = [...new Set(inv.map(i => i.Category).filter(Boolean))];
+  const lowStock   = inv.filter(i => Number(i.Quantity) <= 5);
+  const avgQty     = inv.length ? (totalQty / inv.length).toFixed(1) : 0;
+
+  // Stat cards
+  document.getElementById('analyticsStats').innerHTML = [
+    { label:'Total Items', value: inv.length, color:'#6c63ff', icon:'package' },
+    { label:'Total Qty',   value: totalQty,   color:'#38bdf8', icon:'layers' },
+    { label:'Categories',  value: cats.length, color:'#22c55e', icon:'grid' },
+    { label:'Avg Qty/Item', value: avgQty,     color:'#a78bfa', icon:'activity' },
+  ].map(d => `
+    <div class="stat-card" style="--card-color:${d.color}">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="${d.color}" stroke-width="2">${featherPath(d.icon)}</svg></div>
+      <div class="stat-value">${d.value}</div>
+      <div class="stat-label">${d.label}</div>
+    </div>`).join('');
+
+  // Charts
+  chartInstances.forEach(c => c.destroy());
+  chartInstances = [];
+
+  const catCounts = {};
+  const catQty    = {};
+  inv.forEach(i => {
+    const cat = i.Category || 'Unknown';
+    catCounts[cat] = (catCounts[cat] || 0) + 1;
+    catQty[cat]    = (catQty[cat] || 0) + Number(i.Quantity || 0);
+  });
+
+  const COLORS = ['#6c63ff','#38bdf8','#22c55e','#f59e0b','#ef4444','#a78bfa','#fb7185','#34d399','#fbbf24','#60a5fa'];
+
+  document.getElementById('chartsGrid').innerHTML = `
+    <div class="chart-card"><h6>Items by Category</h6><canvas id="pieChart"></canvas></div>
+    <div class="chart-card"><h6>Quantity by Category</h6><canvas id="barChart"></canvas></div>
+  `;
+
+  const pieCtx = document.getElementById('pieChart').getContext('2d');
+  chartInstances.push(new Chart(pieCtx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(catCounts),
+      datasets: [{ data: Object.values(catCounts), backgroundColor: COLORS, borderWidth: 0, hoverOffset: 8 }]
+    },
+    options: { responsive: true, plugins: { legend: { labels: { color: '#94a3b8', font: { size: 12 } } } } }
+  }));
+
+  const barCtx = document.getElementById('barChart').getContext('2d');
+  chartInstances.push(new Chart(barCtx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(catQty),
+      datasets: [{ label: 'Qty', data: Object.values(catQty), backgroundColor: COLORS, borderRadius: 6, borderSkipped: false }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  }));
+
+  // Low stock
+  document.getElementById('lowStockCount').textContent = `(${lowStock.length})`;
+  if (lowStock.length === 0) {
+    document.getElementById('lowStockTable').innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><h4>All items are well stocked!</h4></div>`;
+    return;
+  }
+  document.getElementById('lowStockTable').innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Item</th><th>Category</th><th>Qty</th><th>Notes</th></tr></thead>
+    <tbody>${lowStock.map(i => `<tr>
+      <td class="item-name">${escHtml(i.Item)}</td>
+      <td>${escHtml(i.Category)}</td>
+      <td><span class="qty-badge low">${i.Quantity}</span></td>
+      <td>${escHtml(i.Notes || '—')}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ================================================================
+//  HISTORY
+// ================================================================
+function renderHistory() {
+  const h = getHistory();
+  if (h.length === 0) {
+    document.getElementById('historyList').innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><h4>No history yet</h4><p>Actions will appear here.</p></div>`;
+    return;
+  }
+  const dotClass = a => { const m = { Add:'add', Remove:'remove', Update:'update', 'Undo Remove':'undo', Import:'import' }; return m[a] || 'update'; };
+  document.getElementById('historyList').innerHTML = h.map(entry => `
+    <div class="history-row">
+      <div class="history-dot ${dotClass(entry.action)}"></div>
+      <div style="flex:1">
+        <div class="history-action">${escHtml(entry.action)}</div>
+        <div class="history-detail">${escHtml(entry.details)}</div>
+        <div class="history-time">${new Date(entry.ts).toLocaleString()}</div>
+      </div>
+      ${entry.action === 'Remove' && entry.status === 'Active' ? `
+        <button class="btn btn-secondary btn-sm undo-btn" onclick="undoRemove('${entry.ts}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
+          Undo
+        </button>` : ''}
+      ${entry.status === 'Undone' ? `<span style="font-size:0.75rem;color:var(--success)">Restored</span>` : ''}
+    </div>
+  `).join('');
+}
+
+function clearHistory() {
+  if (!confirm('Clear all history? This cannot be undone.')) return;
+  saveHistory([]);
+  renderHistory();
+  toast('History cleared.', 'warning');
+}
+
+// ================================================================
+//  CUSTOMISE
+// ================================================================
+const SWATCHES = [
+  { color: '#6c63ff', name: 'Violet' },
+  { color: '#38bdf8', name: 'Sky' },
+  { color: '#22c55e', name: 'Emerald' },
+  { color: '#f59e0b', name: 'Amber' },
+  { color: '#ef4444', name: 'Red' },
+  { color: '#ec4899', name: 'Pink' },
+  { color: '#a78bfa', name: 'Purple' },
+  { color: '#14b8a6', name: 'Teal' },
+];
+
+function renderCustomise() {
+  const s = getSettings();
+  const currentAccent = s.accent || '#6c63ff';
+  document.getElementById('colorSwatches').innerHTML = SWATCHES.map(sw => `
+    <div class="swatch ${sw.color === currentAccent ? 'selected' : ''}"
+         style="background:${sw.color}"
+         title="${sw.name}"
+         onclick="applyAccent('${sw.color}', this)"></div>
+  `).join('');
+  document.getElementById('customColor').value = currentAccent;
+  updateBgPreview();
+}
+
+function applyAccent(color, el) {
+  document.documentElement.style.setProperty('--accent', color);
+  document.documentElement.style.setProperty('--accent-h', lighten(color, 20));
+  document.documentElement.style.setProperty('--accent-glow', color + '55');
+  const s = getSettings(); s.accent = color; saveSettings(s);
+  document.querySelectorAll('.swatch').forEach(sw => sw.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  document.getElementById('customColor').value = color;
+  toast('Accent colour applied!');
+}
+
+function lighten(hex, pct) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, (n >> 16) + pct);
+  const g = Math.min(255, ((n >> 8) & 0xff) + pct);
+  const b = Math.min(255, (n & 0xff) + pct);
+  return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+function handleBgUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const s = getSettings();
+    const isVideo = file.type === 'video/mp4';
+    s.bgData = e.target.result;
+    s.bgType = isVideo ? 'video' : 'image';
+    saveSettings(s);
+    applyBackground(s.bgData, s.bgType);
+    updateBgPreview();
+    toast('Background updated!');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeBg() {
+  const s = getSettings();
+  delete s.bgData; delete s.bgType;
+  saveSettings(s);
+  document.getElementById('bgLayer').style.backgroundImage = '';
+  const v = document.getElementById('bgVideo');
+  v.style.display = 'none'; v.src = '';
+  updateBgPreview();
+  toast('Background removed.', 'warning');
+}
+
+function applyBackground(data, type) {
+  const layer = document.getElementById('bgLayer');
+  const vid   = document.getElementById('bgVideo');
+  if (type === 'video') {
+    layer.style.backgroundImage = '';
+    vid.src = data; vid.style.display = 'block';
+  } else {
+    vid.style.display = 'none'; vid.src = '';
+    layer.style.backgroundImage = `url('${data}')`;
+  }
+}
+
+function updateBgPreview() {
+  const s = getSettings();
+  const el = document.getElementById('bgPreview');
+  if (!el) return;
+  if (s.bgData) {
+    el.innerHTML = s.bgType === 'video'
+      ? `<p style="font-size:0.8rem;color:var(--success)">✓ Video background active</p>`
+      : `<img src="${s.bgData}" style="width:100%;height:80px;object-fit:cover;border-radius:var(--radius-sm);margin-top:8px">`;
+  } else {
+    el.innerHTML = `<p style="font-size:0.8rem;color:var(--text-3);margin-top:8px">No background set</p>`;
+  }
+}
+
+// ================================================================
+//  EXPORT
+// ================================================================
+function exportCSV() {
+  const inv = getInventory();
+  const cols = ['Category','Subcategory','Item','Brand/Type','Length/Capacity','Quantity','Notes'];
+  let csv = cols.join(',') + '\n';
+  inv.forEach(row => {
+    csv += cols.map(c => `"${String(row[c] || '').replace(/"/g,'""')}"`).join(',') + '\n';
+  });
+  downloadBlob(new Blob([csv], { type: 'text/csv' }), 'stockpilot_inventory.csv');
+  document.getElementById('exportMenu').classList.remove('open');
+  toast('CSV exported!');
+}
+
+function exportExcel() {
+  const inv = getInventory();
+  const ws  = XLSX.utils.json_to_sheet(inv);
+  const wb  = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
+  XLSX.writeFile(wb, 'stockpilot_inventory.xlsx');
+  document.getElementById('exportMenu').classList.remove('open');
+  toast('Excel exported!');
+}
+
+function downloadBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ================================================================
+//  IMPORT
+// ================================================================
+function handleImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const isCSV = file.name.endsWith('.csv');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows = [];
+      if (isCSV) {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(Boolean);
+        const headers = parseCSVLine(lines[0]);
+        for (let i = 1; i < lines.length; i++) {
+          const vals = parseCSVLine(lines[i]);
+          const obj = {};
+          headers.forEach((h, j) => obj[h.trim()] = (vals[j] || '').trim());
+          if (obj.Item || obj.Category) rows.push(normaliseRow(obj));
+        }
+      } else {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        rows = raw.map(normaliseRow);
+      }
+
+      const inv = getInventory();
+      const merged = [...inv, ...rows];
+      saveInventory(merged);
+      logHistory('Import', `Imported ${rows.length} items from ${file.name}`);
+      toast(`Imported ${rows.length} items!`, 'info');
+      renderStats(); renderTable();
+    } catch (err) {
+      toast('Import failed: ' + err.message, 'danger');
+    }
+  };
+  if (isCSV) reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+  input.value = '';
+}
+
+function parseCSVLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+function normaliseRow(obj) {
+  return {
+    Category:          String(obj['Category'] || ''),
+    Subcategory:       String(obj['Subcategory'] || ''),
+    Item:              String(obj['Item'] || ''),
+    'Brand/Type':      String(obj['Brand/Type'] || obj['Brand'] || ''),
+    'Length/Capacity': String(obj['Length/Capacity'] || obj['Length'] || obj['Capacity'] || ''),
+    Quantity:          Number(obj['Quantity'] || 0),
+    Notes:             String(obj['Notes'] || ''),
+  };
+}
+
+// ================================================================
+//  FEATHER PATH SNIPPETS (inline SVG paths)
+// ================================================================
+const FEATHER_PATHS = {
+  package: `<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>`,
+  layers: `<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>`,
+  grid: `<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>`,
+  'alert-triangle': `<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>`,
+  activity: `<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+};
+function featherPath(name) { return FEATHER_PATHS[name] || ''; }
+
+// ================================================================
+//  UTIL
+// ================================================================
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ================================================================
+//  INIT
+// ================================================================
+function init() {
+  feather.replace();
+
+  // Apply saved settings
+  const s = getSettings();
+  if (s.accent) applyAccent(s.accent, null);
+  if (s.bgData) applyBackground(s.bgData, s.bgType);
+
+  // Initial page render
+  renderStats();
+  renderTable();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+<!-- Bootstrap JS (for dropdowns/tooltips) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
